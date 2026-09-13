@@ -1,0 +1,36 @@
+name: Deploy para Azure
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar codigo
+        uses: actions/checkout@v4
+
+      - name: Login no Azure Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: acrsistemaprodutos.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Criar imagem Docker
+        run: |
+          docker build -t acrsistemaprodutos.azurecr.io/sistema-produtos:latest .
+
+      - name: Enviar imagem para ACR
+        run: |
+          docker push acrsistemaprodutos.azurecr.io/sistema-produtos:latest
+
+      - name: Reiniciar Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: sistema-produtos-matos
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          images: acrsistemaprodutos.azurecr.io/sistema-produtos:latest
